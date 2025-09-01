@@ -1,9 +1,9 @@
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QMessageBox, QDialog
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtCore import QUrl, QTimer
+from PySide6.QtCore import QUrl, QTimer, QObject, Slot, Signal
 from PySide6.QtQuick import QQuickView
-from PySide6.QtQml import qmlRegisterType
+from PySide6.QtQml import qmlRegisterType, qmlRegisterSingletonType
 from PySide6.QtQuickWidgets import QQuickWidget
 # from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest
 import os
@@ -15,11 +15,48 @@ from dialog.mission_device_list_dialog import MissionDeviceListDialog
 
 import requests
 
+class QmlBridge(QObject):
+    """QML과 Python 간의 통신을 위한 브리지 클래스"""
+    
+    # 로그인 상태 변경 시그널
+    loginStatusChanged = Signal()
+    
+    def __init__(self, main_window):
+        super().__init__()
+        self.main_window = main_window
+    
+    @Slot()
+    def showLoginDialog(self):
+        """QML에서 호출되는 로그인 다이얼로그 표시 함수"""
+        self.main_window.show_login_dialog_from_qml()
+    
+    @Slot()
+    def showLogoutConfirm(self):
+        """QML에서 호출되는 로그아웃 확인 함수"""
+        self.main_window.show_logout_confirm()
+    
+    @Slot(result=bool)
+    def isLoggedIn(self):
+        """현재 로그인 상태 반환"""
+        return self.main_window.is_logged_in
+    
+    @Slot(result=str)
+    def getCurrentUser(self):
+        """현재 로그인된 사용자명 반환"""
+        return self.main_window.current_user if self.main_window.current_user else ""
+
 class MainMap(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("스마트 지도")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setWindowTitle("스카이아이 GCS")
+        self.setGeometry(100, 100, 1920, 1080)
+        
+        # 로그인 상태 관리
+        self.is_logged_in = False
+        self.current_user = None
+        
+        # QML 브리지 설정
+        self.qml_bridge = QmlBridge(self)
         
         # 중앙 위젯 설정
         central_widget = QWidget()
@@ -44,9 +81,6 @@ class MainMap(QMainWindow):
         self.network_timer = QTimer()
         self.network_timer.timeout.connect(self.check_network_and_load_map)
         self.network_timer.start(3000)  # 30초
-        
-        # 지도 로드 후 로그인 다이얼로그 표시
-        QTimer.singleShot(1000, self.show_login_dialog)
         
         # 로그인 성공 후 임무장비 다이얼로그 테스트 (선택사항)
         # self.show_mission_device_dialog()
@@ -119,6 +153,10 @@ class MainMap(QMainWindow):
             qml_file = os.path.join(os.path.dirname(__file__), 'map.qml')
             
             if os.path.exists(qml_file):
+                # QML 컨텍스트에 브리지 객체 등록
+                root_context = self.qml_widget.rootContext()
+                root_context.setContextProperty("qmlBridge", self.qml_bridge)
+                
                 self.qml_widget.setSource(QUrl.fromLocalFile(qml_file))
                 self.qml_widget.setResizeMode(QQuickWidget.SizeRootObjectToView)
                 self.qml_widget.setVisible(True)
@@ -158,6 +196,48 @@ class MainMap(QMainWindow):
                 QMessageBox.information(self, "로그인 취소", "로그인이 취소되었습니다.")
                 break
             # 로그인 실패 시 다이얼로그를 다시 표시 (while 루프 계속)
+    
+    def show_login_dialog_from_qml(self):
+        """QML에서 호출되는 로그인 다이얼로그 표시"""
+        if self.is_logged_in:
+            QMessageBox.information(self, "알림", "이미 로그인되어 있습니다.")
+            return
+            
+        while True:  # 로그인 성공하거나 사용자가 취소할 때까지 반복
+            login_dialog = LoginDialog(self)
+            result = login_dialog.exec()
+            
+            if result == QDialog.Accepted and login_dialog.login_successful:
+                self.is_logged_in = True
+                self.current_user = getattr(login_dialog, 'username', 'Unknown')
+                
+                # QML에 로그인 상태 변경 알림
+                self.qml_bridge.loginStatusChanged.emit()
+                
+                # 로그인 성공 후 임무장비 목록 다이얼로그 표시
+                self.show_mission_device_dialog(login_dialog.site_data)
+                break  # 로그인 성공 시 루프 종료
+            elif result == QDialog.Rejected:
+                # 사용자가 취소 버튼을 눌렀을 때
+                QMessageBox.information(self, "로그인 취소", "로그인이 취소되었습니다.")
+                break  # 취소 시 루프 종료
+            # 로그인 실패 시 (result == QDialog.Accepted but login_successful == False)
+            # 다시 루프를 돌아서 로그인 다이얼로그를 다시 표시
+    
+    def show_logout_confirm(self):
+        """로그아웃 확인 다이얼로그 표시"""
+        if not self.is_logged_in:
+            QMessageBox.information(self, "알림", "현재 로그인되어 있지 않습니다.")
+            return
+            
+       
+        self.is_logged_in = False
+        self.current_user = None
+        
+        # QML에 로그인 상태 변경 알림
+        self.qml_bridge.loginStatusChanged.emit()
+        
+        QMessageBox.information(self, "로그아웃", "로그아웃되었습니다.")
     
     def show_mission_device_dialog(self, site_data=None):
         """임무장비 목록 다이얼로그 표시"""

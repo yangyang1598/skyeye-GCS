@@ -24,7 +24,6 @@ class LoginDialog(QDialog):
         
         # 기본값 설정 (테스트용)
         self.ui.line_edit_id.setText("jhyang")
-        self.ui.line_edit_pw.setText("didwlsgus1!")
     
     def login(self):
         """로그인 처리"""

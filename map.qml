@@ -24,6 +24,91 @@ Rectangle {
         height: 60
         color: "#2c3e50"
         z: 1000
+        
+        // 로그인/로그아웃 버튼 영역
+        Row {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.rightMargin: 20
+            spacing: 10
+            
+            property bool isLoggedIn: false
+            
+            // 로그인 상태 변경 감지
+            Connections {
+                target: qmlBridge
+                function onLoginStatusChanged() {
+                    console.log("로그인 상태 변경 시그널 수신됨")
+                    parent.isLoggedIn = qmlBridge.isLoggedIn()
+                    console.log("현재 로그인 상태:", parent.isLoggedIn)
+                    // 버튼 강제 업데이트
+                    authButton.color = Qt.binding(function() {
+                        if (parent.isLoggedIn) {
+                            return authButtonArea.containsMouse ? "#e74c3c" : "#c0392b"
+                        } else {
+                            return authButtonArea.containsMouse ? "#3498db" : "#2980b9"
+                        }
+                    })
+                    authButtonText.text = Qt.binding(function() {
+                        return parent.isLoggedIn ? "로그아웃" : "로그인"
+                    })
+                }
+            }
+            
+            Component.onCompleted: {
+                console.log("컴포넌트 초기화 시작")
+                if (typeof qmlBridge !== 'undefined') {
+                    isLoggedIn = qmlBridge.isLoggedIn()
+                    console.log("초기 로그인 상태:", isLoggedIn)
+                } else {
+                    console.log("qmlBridge가 정의되지 않음")
+                }
+            }
+            
+            Rectangle {
+                id: authButton
+                width: 80
+                height: 35
+                color: {
+                    if (parent.isLoggedIn) {
+                        return authButtonArea.containsMouse ? "#e74c3c" : "#c0392b"
+                    } else {
+                        return authButtonArea.containsMouse ? "#3498db" : "#2980b9"
+                    }
+                }
+                radius: 5
+                border.color: "#ffffff"
+                border.width: 1
+                
+                Text {
+                    id: authButtonText
+                    anchors.centerIn: parent
+                    text: parent.parent.isLoggedIn ? "로그아웃" : "로그인"
+                    color: "white"
+                    font.pixelSize: 12
+                    font.bold: true
+                }
+                
+                MouseArea {
+                    id: authButtonArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: {
+                        if (typeof qmlBridge !== 'undefined') {
+                            var currentLoginStatus = qmlBridge.isLoggedIn()
+                            console.log("버튼 클릭됨, 현재 로그인 상태:", currentLoginStatus)
+                            if (currentLoginStatus) {
+                                console.log("로그아웃 버튼 클릭됨")
+                                qmlBridge.showLogoutConfirm()
+                            } else {
+                                console.log("로그인 버튼 클릭됨")
+                                qmlBridge.showLoginDialog()
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // 지도 영역

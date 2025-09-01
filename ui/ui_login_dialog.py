@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'login_dialogncJPUS.ui'
+## Form generated from reading UI file 'login_dialogIPecoI.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.8.1
 ##
@@ -37,15 +37,15 @@ class Ui_Dialog(object):
 
         self.gridLayout.addWidget(self.label_title_login, 0, 0, 1, 1)
 
-        self.label_pw = QLabel(Dialog)
-        self.label_pw.setObjectName(u"label_pw")
+        self.label_title_pw = QLabel(Dialog)
+        self.label_title_pw.setObjectName(u"label_title_pw")
 
-        self.gridLayout.addWidget(self.label_pw, 3, 0, 1, 1)
+        self.gridLayout.addWidget(self.label_title_pw, 3, 0, 1, 1)
 
-        self.label_id = QLabel(Dialog)
-        self.label_id.setObjectName(u"label_id")
+        self.label_title_id = QLabel(Dialog)
+        self.label_title_id.setObjectName(u"label_title_id")
 
-        self.gridLayout.addWidget(self.label_id, 2, 0, 1, 1)
+        self.gridLayout.addWidget(self.label_title_id, 2, 0, 1, 1)
 
         self.line_edit_pw = QLineEdit(Dialog)
         self.line_edit_pw.setObjectName(u"line_edit_pw")
@@ -89,7 +89,7 @@ class Ui_Dialog(object):
     def retranslateUi(self, Dialog):
         Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"\ub85c\uadf8\uc778 \ucc3d", None))
         self.label_title_login.setText(QCoreApplication.translate("Dialog", u"\ub85c\uadf8\uc778 ", None))
-        self.label_pw.setText(QCoreApplication.translate("Dialog", u"PW", None))
-        self.label_id.setText(QCoreApplication.translate("Dialog", u"ID", None))
+        self.label_title_pw.setText(QCoreApplication.translate("Dialog", u"PW", None))
+        self.label_title_id.setText(QCoreApplication.translate("Dialog", u"ID", None))
     # retranslateUi
 
