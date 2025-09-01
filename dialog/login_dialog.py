@@ -14,6 +14,7 @@ class LoginDialog(QDialog):
         self.login_successful = False  # 로그인 성공 여부 추적
         self.token = None  # 로그인 토큰 저장
         self.site_data = None  # site API 응답 데이터 저장
+        self.server_config = self.load_server_config()  # 서버 설정 로드
         
         # 패스워드 필드를 비밀번호 모드로 설정
         self.ui.line_edit_pw.setEchoMode(self.ui.line_edit_pw.EchoMode.Password)
@@ -24,6 +25,28 @@ class LoginDialog(QDialog):
         
         # 기본값 설정 (테스트용)
         self.ui.line_edit_id.setText("jhyang")
+    
+    def load_server_config(self):
+        """setting.json에서 서버 설정 로드"""
+        try:
+            config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'setting.json')
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                return {
+                    'server_url': config.get('server_url', 'localhost'),
+                    'port': config.get('port', '8000')
+                }
+        except Exception as e:
+            print(f"설정 파일 로드 실패: {e}")
+            # 기본값 반환
+            return {
+                'server_url': 'skysys.iptime.org',
+                'port': '8000'
+            }
+    
+    def get_api_base_url(self):
+        """API 기본 URL 생성"""
+        return f"http://{self.server_config['server_url']}:{self.server_config['port']}"
     
     def login(self):
         """로그인 처리"""
@@ -53,7 +76,7 @@ class LoginDialog(QDialog):
         """API를 통한 로그인 인증"""
         try:
             # API 엔드포인트
-            url = "http://skysys.iptime.org:8000/login"
+            url = f"{self.get_api_base_url()}/login"
             
             # 요청 데이터
             data = {
@@ -129,7 +152,7 @@ class LoginDialog(QDialog):
     def fetch_site_data(self):
         """로그인 성공 후 site API 호출"""
         try:
-            url = "http://skysys.iptime.org:8000/site/"
+            url = f"{self.get_api_base_url()}/site/"
             
             headers = {
                 "Content-Type": "application/json",
